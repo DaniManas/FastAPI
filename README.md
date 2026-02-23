@@ -56,9 +56,9 @@ FastAPI/
 ## Progress Tracker
 
 - [x] Git initialized and GitHub repo created
-- [ ] Build first FastAPI app
-- [ ] Add request validation with Pydantic
-- [ ] Create CRUD API
+- [x] Build first FastAPI app
+- [x] Add request validation with Pydantic
+- [x] Create CRUD API
 - [ ] Dockerize a FastAPI project
 - [ ] Deploy a FastAPI app
 - [ ] Learn AWS deployment basics
