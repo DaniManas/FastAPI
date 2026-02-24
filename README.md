@@ -12,91 +12,53 @@ This repository is my personal learning space where I document my progress in:
 
 I am using this repo to practice by building projects, trying new concepts, and improving my backend development skills over time.
 
-## What I’m Learning
-
-### FastAPI
-- Routes and path/query parameters
-- Request/response models with Pydantic
-- Validation and error handling
-- CRUD APIs
-- Dependency injection
-- Authentication and authorization
-- Async APIs
-- Testing FastAPI applications
-
-### Docker
-- Docker basics
-- Writing Dockerfiles
-- Containerizing FastAPI apps
-- Running multi-service apps
-
-### Deployment / DevOps
-- Deploying FastAPI applications
-- AWS deployment basics
-- Environment variables and production setup
-
 ## Learning Source
 
-I am also learning from the **CampusX FastAPI series** and related tutorials (including Docker and deployment topics).
+I am learning from the **CampusX FastAPI series** and related tutorials (including Docker and deployment topics), and using this repo to track my implementations and improvements.
 
-## Repository Structure
+## Featured Project Update
+
+### Insurance Premium Prediction API (Video Implementation)
+
+I completed a FastAPI project based on the tutorial and added it to this repository as part of my learning journey.
+
+What this project currently includes:
+- Trained ML model exported as `model.pkl`
+- FastAPI prediction endpoint (`POST /predict`)
+- Pydantic input validation
+- Feature engineering inside the API flow (BMI, age group, lifestyle risk, city tier)
+- Modular project structure (`config/`, `schema/`, `model/`)
+
+Project path:
+- `projects/insurance-premium-api/`
+
+This is my tutorial-based implementation that I will later improve with Dockerization, deployment, and a stronger real-world use case (like churn prediction).
+
+## Current Repository Structure
 
 ```bash
 FastAPI/
-├── app/                # Main FastAPI application code
-├── projects/           # Practice mini-projects / experiments
-├── notes/              # Learning notes
-├── tests/              # Test cases
-├── requirements.txt    # Python dependencies
+├── projects/
+│   └── insurance-premium-api/   # ML model + FastAPI endpoint project
+├── app.py / frontend.py / notebooks (older experiments)
+├── requirements.txt
 └── README.md
 ```
 
-> The structure may change as I progress and organize things better.
+> The structure will keep evolving as I build more projects.
 
 ## Progress Tracker
 
 - [x] Git initialized and GitHub repo created
 - [x] Build first FastAPI app
 - [x] Add request validation with Pydantic
-- [x] Create CRUD API
-- [ ] Dockerize a FastAPI project
+- [x] Build ML model prediction endpoint with FastAPI
+- [x] Complete insurance premium prediction API project (tutorial-based)
+- [ ] Dockerize the insurance premium API
 - [ ] Deploy a FastAPI app
 - [ ] Learn AWS deployment basics
 - [ ] Add tests
-
-## Getting Started
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/DaniManas/FastAPI.git
-cd FastAPI
-```
-
-### 2. Create a virtual environment
-
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-For Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the FastAPI app
-
-```bash
-uvicorn app.main:app --reload
-```
+- [ ] Build a stronger showcase project (e.g., churn prediction)
 
 ## Why This Repo?
 
