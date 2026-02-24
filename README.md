@@ -12,15 +12,11 @@ This repository is my personal learning space where I document my progress in:
 
 I am using this repo to practice by building projects, trying new concepts, and improving my backend development skills over time.
 
-## Learning Source
-
-I am learning from the **CampusX FastAPI series** and related tutorials (including Docker and deployment topics), and using this repo to track my implementations and improvements.
-
 ## Featured Project Update
 
-### Insurance Premium Prediction API (Video Implementation)
+### Insurance Premium Prediction API
 
-I completed a FastAPI project based on the tutorial and added it to this repository as part of my learning journey.
+I built an end-to-end Insurance Premium Prediction API project and added it to this repository as part of my FastAPI learning journey.
 
 What this project currently includes:
 - Trained ML model exported as `model.pkl`
@@ -32,7 +28,7 @@ What this project currently includes:
 Project path:
 - `projects/insurance-premium-api/`
 
-This is my tutorial-based implementation that I will later improve with Dockerization, deployment, and a stronger real-world use case (like churn prediction).
+This project is part of my progress in building ML-backed APIs with FastAPI, and I plan to extend the same approach with Dockerization, deployment, and stronger real-world use cases (like churn prediction).
 
 ## Current Repository Structure
 
@@ -53,12 +49,11 @@ FastAPI/
 - [x] Build first FastAPI app
 - [x] Add request validation with Pydantic
 - [x] Build ML model prediction endpoint with FastAPI
-- [x] Complete insurance premium prediction API project (tutorial-based)
+- [x] Complete insurance premium prediction API project
 - [ ] Dockerize the insurance premium API
 - [ ] Deploy a FastAPI app
 - [ ] Learn AWS deployment basics
 - [ ] Add tests
-- [ ] Build a stronger showcase project (e.g., churn prediction)
 
 ## Why This Repo?
 
