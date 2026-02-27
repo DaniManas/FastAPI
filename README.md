@@ -19,6 +19,8 @@ I am using this repo to practice by building projects, trying new concepts, and 
 I built an end-to-end Insurance Premium Prediction API project and added it to this repository as part of my FastAPI learning journey.
 
 What this project currently includes:
+- Dockerized API with a production-ready `Dockerfile`
+- Docker Hub image published: `manasadani/insurance-premium-api:latest`
 - Trained ML model exported as `model.pkl`
 - FastAPI prediction endpoint (`POST /predict`)
 - Pydantic input validation
