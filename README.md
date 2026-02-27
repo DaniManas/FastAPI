@@ -52,7 +52,8 @@ FastAPI/
 - [x] Add request validation with Pydantic
 - [x] Build ML model prediction endpoint with FastAPI
 - [x] Complete insurance premium prediction API project
-- [ ] Dockerize the insurance premium API
+- [x] Dockerize the insurance premium API
+- [x] Publish Docker image to Docker Hub
 - [ ] Deploy a FastAPI app
 - [ ] Learn AWS deployment basics
 - [ ] Add tests
