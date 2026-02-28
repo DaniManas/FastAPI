@@ -30,7 +30,13 @@ What this project currently includes:
 Project path:
 - `projects/insurance-premium-api/`
 
-This project is part of my progress in building ML-backed APIs with FastAPI, and I plan to extend the same approach with Dockerization, deployment, and stronger real-world use cases (like churn prediction).
+This project demonstrates my end-to-end workflow for building, containerizing, and deploying ML-backed APIs with FastAPI.
+
+
+## Live Deployment
+
+- Public API Base URL: `http://18.117.168.71:8000`
+- Swagger Docs: `http://18.117.168.71:8000/docs`
 
 ## Current Repository Structure
 
@@ -54,8 +60,8 @@ FastAPI/
 - [x] Complete insurance premium prediction API project
 - [x] Dockerize the insurance premium API
 - [x] Publish Docker image to Docker Hub
-- [ ] Deploy a FastAPI app
-- [ ] Learn AWS deployment basics
+- [x] Deploy a FastAPI app
+- [x] Learn AWS deployment basics
 - [ ] Add tests
 
 ## Why This Repo?
