@@ -38,7 +38,7 @@ This project demonstrates my end-to-end workflow for building, containerizing, a
 
 ## Live Deployment
 
-- Interactive Web App (Streamlit): `http://18.117.168.71:8501`
+- Interactive Web App (Streamlit): [Open App](http://18.117.168.71:8501)
 - Public API Base URL: `http://18.117.168.71:8000`
 - Swagger Docs: `http://18.117.168.71:8000/docs`
 
