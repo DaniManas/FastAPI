@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Insurance Premium API – Data Flow</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --accent1: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --accent5: #ffa657;
+    --accent6: #79c0ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 2rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% -20%, rgba(88,166,255,.15) 0%, transparent 70%);
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    position: relative;
+  }
+  header h1 span { color: var(--accent1); }
+  header p {
+    color: var(--muted);
+    margin-top: .5rem;
+    font-size: .95rem;
+    position: relative;
+  }
+
+  /* ── NAV TABS ── */
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  nav button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: .45rem 1.1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .85rem;
+    transition: all .2s;
+  }
+  nav button:hover { color: var(--text); border-color: var(--accent1); }
+  nav button.active {
+    background: var(--accent1);
+    border-color: var(--accent1);
+    color: #0d1117;
+    font-weight: 600;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 2rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* ── PIPELINE VIEW ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .step-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  .step-wrapper.visible { opacity: 1; transform: translateY(0); }
+
+  .step-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 48px;
+    flex-shrink: 0;
+  }
+  .step-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .85rem;
+    flex-shrink: 0;
+    z-index: 1;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .2s;
+  }
+  .step-dot:hover { transform: scale(1.15); }
+  .step-line {
+    flex: 1;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--dot-color, var(--accent1)), transparent);
+    margin: 4px 0;
+    min-height: 32px;
+  }
+
+  .step-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    margin: .4rem 0 .4rem .6rem;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .step-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--step-color, var(--accent1));
+    border-radius: 10px 0 0 10px;
+  }
+  .step-card:hover, .step-card.expanded {
+    border-color: var(--step-color, var(--accent1));
+    box-shadow: 0 0 0 1px var(--step-color, var(--accent1))30;
+  }
+  .step-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .step-badge {
+    font-size: .7rem;
+    padding: .15rem .5rem;
+    border-radius: 20px;
+    font-weight: 600;
+    opacity: .9;
+  }
+  .step-subtitle {
+    color: var(--muted);
+    font-size: .82rem;
+    margin-top: .2rem;
+  }
+  .step-detail {
+    display: none;
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  .step-card.expanded .step-detail { display: block; }
+
+  .code-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .8rem 1rem;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: .78rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: .6rem 0;
+  }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .fn { color: #d2a8ff; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm { color: #8b949e; font-style: italic; }
+  .code-block .num { color: #79c0ff; }
+  .code-block .cls { color: #ffa657; }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: .5rem;
+    margin-top: .6rem;
+  }
+  .field-pill {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .4rem .7rem;
+    font-size: .78rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+  .field-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .field-pill .name { color: var(--accent4); font-family: monospace; }
+  .field-pill .type { color: var(--muted); margin-left: auto; }
+
+  .arrow-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .78rem;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: .2rem .5rem;
+    margin: .3rem .2rem;
+  }
+
+  /* ── ARCHITECTURE VIEW ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  .arch-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.3rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .arch-card:hover { transform: translateY(-3px); }
+  .arch-card .icon { font-size: 2rem; margin-bottom: .6rem; }
+  .arch-card h3 { font-size: .95rem; margin-bottom: .4rem; }
+  .arch-card p { color: var(--muted); font-size: .82rem; line-height: 1.5; }
+  .arch-card .tag {
+    display: inline-block;
+    font-size: .7rem;
+    padding: .1rem .4rem;
+    border-radius: 4px;
+    margin-top: .5rem;
+    font-family: monospace;
+  }
+
+  /* ── TRANSFORM VIEW ── */
+  .transform-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+  }
+  .tf-stage {
+    min-width: 220px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+  .tf-stage h4 {
+    font-size: .82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: .6rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .tf-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 .6rem;
+    padding-top: 2.5rem;
+    color: var(--muted);
+    font-size: 1.2rem;
+  }
+  .tf-row {
+    font-size: .78rem;
+    padding: .25rem 0;
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    border-bottom: 1px solid #21262d;
+  }
+  .tf-row:last-child { border-bottom: none; }
+  .tf-key { color: var(--accent4); font-family: monospace; }
+  .tf-val { color: var(--accent2); font-family: monospace; text-align: right; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tf-computed { color: var(--accent5); }
+  .tf-dropped { color: var(--accent3); text-decoration: line-through; opacity: .5; }
+
+  .legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    font-size: .78rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: .3rem; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── DOCKER VIEW ── */
+  .docker-box {
+    border: 2px dashed #1f6feb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    background: rgba(31,111,251,.04);
+  }
+  .docker-label {
+    position: absolute;
+    top: -13px;
+    left: 1rem;
+    background: var(--bg);
+    padding: 0 .5rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #58a6ff;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+  }
+  .docker-inner {
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 1.2rem;
+    background: var(--card);
+  }
+  .docker-inner h3 { font-size: .95rem; margin-bottom: .8rem; display: flex; align-items: center; gap: .4rem; }
+  .cmd-list { list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+  .cmd-list li {
+    font-family: monospace;
+    font-size: .82rem;
+    color: var(--accent2);
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+  }
+  .cmd-kw { color: var(--accent1); font-weight: 600; }
+  .cmd-comment { color: var(--muted); font-style: italic; }
+
+  .port-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(63,185,80,.12);
+    border: 1px solid rgba(63,185,80,.3);
+    border-radius: 6px;
+    padding: .4rem .8rem;
+    font-size: .85rem;
+    margin-top: 1rem;
+  }
+
+  /* ── ANIMATED FLOW ── */
+  .animated-flow {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .animated-flow h3 { font-size: .95rem; margin-bottom: 1rem; }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    flex-wrap: wrap;
+    row-gap: .5rem;
+  }
+  .flow-node {
+    padding: .4rem .8rem;
+    border-radius: 6px;
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    position: relative;
+  }
+  .flow-arr {
+    color: var(--muted);
+    font-size: .9rem;
+    padding: 0 .1rem;
+  }
+  .pulse {
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+  .data-packet {
+    display: inline-block;
+    animation: travel 3s linear infinite;
+    font-size: .7rem;
+    color: var(--accent5);
+    font-family: monospace;
+  }
+  @keyframes travel {
+    0% { opacity: 0; transform: translateX(-10px); }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(10px); }
+  }
+
+  /* ── SUMMARY ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem;
+  }
+  .summary-card .num {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .3rem;
+  }
+  .summary-card .label { color: var(--muted); font-size: .82rem; }
+  .summary-card .desc { margin-top: .6rem; font-size: .82rem; line-height: 1.5; color: var(--text); }
+
+  /* ── UTILITIES ── */
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin-left: .5rem;
+  }
+  .mt { margin-top: 1.5rem; }
+  .info-box {
+    background: rgba(88,166,255,.07);
+    border: 1px solid rgba(88,166,255,.2);
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    font-size: .82rem;
+    line-height: 1.6;
+    color: var(--accent1);
+    margin: 1rem 0;
+  }
+  .warn-box {
+    background: rgba(255,166,87,.07);
+    border: 1px solid rgba(255,166,87,.2);
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    font-size: .82rem;
+    line-height: 1.6;
+    color: var(--accent5);
+    margin: 1rem 0;
+  }
+
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.4rem; }
+    .transform-flow { flex-direction: column; }
+    .tf-arrow { transform: rotate(90deg); padding: .3rem 0; align-self: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏥 Insurance Premium API — <span>Data Flow</span></h1>
+  <p>A complete visual walkthrough: from user input → validation → ML model → Docker container</p>
+</header>
+
+<nav>
+  <button class="active" onclick="switchView('pipeline', this)">📍 Step-by-Step Flow</button>
+  <button onclick="switchView('transform', this)">🔄 Data Transformation</button>
+  <button onclick="switchView('architecture', this)">🗂 File Architecture</button>
+  <button onclick="switchView('docker', this)">🐳 Docker & Deployment</button>
+  <button onclick="switchView('summary', this)">📊 Quick Summary</button>
+</nav>
+
+<!-- ═══════════ PIPELINE VIEW ═══════════ -->
+<div id="view-pipeline" class="view active">
+  <div class="section-title">📍 Full Request Lifecycle — click any step to expand</div>
+  <div class="info-box">💡 Each step below represents one layer of the system. Click a card to see exactly what code runs and what data looks like at that point.</div>
+
+  <div class="pipeline" id="pipeline">
+
+    <!-- STEP 1 -->
+    <div class="step-wrapper" style="--dot-color:#58a6ff">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#1c2a40;border-color:#58a6ff;color:#58a6ff" onclick="toggleStep(this)">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#58a6ff" onclick="toggleCard(this)">
+        <h3>🖥 Streamlit Frontend <span class="step-badge" style="background:#1c2a40;color:#58a6ff">frontend.py</span></h3>
+        <div class="step-subtitle">User fills a form → raw values collected → HTTP POST sent to FastAPI</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">The user sees a Streamlit web form. When they hit <strong style="color:var(--text)">Predict</strong>, these exact raw values are packaged into a JSON payload:</p>
+          <div class="code-block">
+<span class="cm"># What the user enters in the form</span>
+payload = {
+    <span class="str">"age"</span>:        <span class="num">35</span>,              <span class="cm"># int, 0-120</span>
+    <span class="str">"weight"</span>:     <span class="num">75.0</span>,           <span class="cm"># float, kg</span>
+    <span class="str">"height"</span>:     <span class="num">1.75</span>,           <span class="cm"># float, meters</span>
+    <span class="str">"income_lpa"</span>: <span class="num">12.0</span>,           <span class="cm"># float, lakhs/year</span>
+    <span class="str">"smoker"</span>:     <span class="kw">True</span>,            <span class="cm"># bool</span>
+    <span class="str">"city"</span>:       <span class="str">"Mumbai"</span>,        <span class="cm"># str</span>
+    <span class="str">"occupation"</span>: <span class="str">"private_job"</span>   <span class="cm"># Literal enum</span>
+}
+<span class="cm"># Sent over HTTP POST to: http://18.117.168.71:8000/predict</span>
+response = requests.post(<span class="str">f"{api_base}/predict"</span>, json=payload, timeout=<span class="num">20</span>)</div>
+          <div class="warn-box">⚠️ The API URL is hardcoded to an AWS EC2 instance IP (<code>18.117.168.71:8000</code>). Users can override it in the sidebar.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-wrapper" style="--dot-color:#d2a8ff">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#1e1a2e;border-color:#d2a8ff;color:#d2a8ff" onclick="toggleStep(this)">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#d2a8ff" onclick="toggleCard(this)">
+        <h3>⚡ FastAPI Receives Request <span class="step-badge" style="background:#1e1a2e;color:#d2a8ff">app.py</span></h3>
+        <div class="step-subtitle">POST /predict — FastAPI hands the JSON body to the UserInput Pydantic model</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">FastAPI automatically parses the JSON body. The type annotation <code style="color:var(--accent4)">user_input: UserInput</code> triggers Pydantic validation before any of your code runs.</p>
+          <div class="code-block">
+<span class="cm"># app.py</span>
+<span class="fn">@app</span>.post(<span class="str">"/predict"</span>, response_model=<span class="cls">PredictionResponse</span>)
+<span class="kw">def</span> <span class="fn">predict_premium</span>(user_input: <span class="cls">UserInput</span>):
+    <span class="cm"># ↑ FastAPI calls UserInput(**json_body) automatically</span>
+    <span class="cm"># If validation fails → 422 Unprocessable Entity (before this runs)</span>
+    <span class="cm"># If validation passes → this function executes</span>
+    ...</div>
+          <p style="font-size:.83rem;color:var(--muted);margin-top:.6rem">Also available: <code style="color:var(--accent2)">GET /</code> (welcome message) and <code style="color:var(--accent2)">GET /health</code> (status + model version).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-wrapper" style="--dot-color:#ffa657">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#1e1800;border-color:#ffa657;color:#ffa657" onclick="toggleStep(this)">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#ffa657" onclick="toggleCard(this)">
+        <h3>🔍 Pydantic Validation + Feature Engineering <span class="step-badge" style="background:#1e1800;color:#ffa657">schema/user_input.py</span></h3>
+        <div class="step-subtitle">7 raw inputs → validated → 4 computed fields auto-generated → 11 total fields</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">The <code style="color:var(--accent4)">UserInput</code> Pydantic model does heavy lifting: it validates ranges, normalises text, and computes derived features automatically using <code>@computed_field</code> and <code>@field_validator</code>.</p>
+          <div class="code-block">
+<span class="cm"># schema/user_input.py — computed fields</span>
+
+<span class="fn">@computed_field</span> <span class="cm"># auto-calculated, never passed by user</span>
+<span class="kw">def</span> <span class="fn">bmi</span>(<span class="kw">self</span>) -> <span class="cls">float</span>:
+    <span class="kw">return</span> <span class="kw">self</span>.weight / (<span class="kw">self</span>.height ** <span class="num">2</span>)
+    <span class="cm"># 75 / (1.75²) = 24.49</span>
+
+<span class="fn">@computed_field</span>
+<span class="kw">def</span> <span class="fn">lifestyle_risk</span>(<span class="kw">self</span>) -> <span class="cls">str</span>:
+    <span class="kw">if</span> <span class="kw">self</span>.smoker <span class="kw">and</span> <span class="kw">self</span>.bmi > <span class="num">30</span>: <span class="kw">return</span> <span class="str">"high"</span>
+    <span class="kw">elif</span> <span class="kw">self</span>.smoker <span class="kw">and</span> <span class="kw">self</span>.bmi > <span class="num">27</span>: <span class="kw">return</span> <span class="str">"medium"</span>
+    <span class="kw">return</span> <span class="str">"low"</span>      <span class="cm"># smoker=True, bmi=24.49 → "low"</span>
+
+<span class="fn">@computed_field</span>
+<span class="kw">def</span> <span class="fn">age_group</span>(<span class="kw">self</span>) -> <span class="cls">str</span>:
+    <span class="kw">if</span> age &lt; <span class="num">25</span>:  <span class="kw">return</span> <span class="str">"young"</span>
+    <span class="kw">elif</span> age &lt; <span class="num">45</span>: <span class="kw">return</span> <span class="str">"adult"</span>   <span class="cm"># ← age=35</span>
+    <span class="kw">elif</span> age &lt; <span class="num">60</span>: <span class="kw">return</span> <span class="str">"middle_aged"</span>
+    <span class="kw">return</span> <span class="str">"senior"</span>
+
+<span class="fn">@computed_field</span>
+<span class="kw">def</span> <span class="fn">city_tier</span>(<span class="kw">self</span>) -> <span class="cls">int</span>:
+    <span class="kw">if</span> city <span class="kw">in</span> tier_1_cities: <span class="kw">return</span> <span class="num">1</span>  <span class="cm"># ← "Mumbai" → Tier 1</span>
+    <span class="kw">elif</span> city <span class="kw">in</span> tier_2_cities: <span class="kw">return</span> <span class="num">2</span>
+    <span class="kw">return</span> <span class="num">3</span>
+
+<span class="fn">@field_validator</span>(<span class="str">"city"</span>)
+<span class="kw">def</span> <span class="fn">validate_city</span>(v): <span class="kw">return</span> v.strip().title() <span class="cm"># "mumbai" → "Mumbai"</span></div>
+          <p style="font-size:.83rem;color:var(--muted);margin-top:.6rem">Also imports <code style="color:var(--accent4)">tier_1_cities</code> and <code style="color:var(--accent4)">tier_2_cities</code> from <code>config/city_tier.py</code> for the lookup.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-wrapper" style="--dot-color:#79c0ff">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#0d1f2d;border-color:#79c0ff;color:#79c0ff" onclick="toggleStep(this)">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#79c0ff" onclick="toggleCard(this)">
+        <h3>✂️ Feature Selection (in app.py) <span class="step-badge" style="background:#0d1f2d;color:#79c0ff">app.py</span></h3>
+        <div class="step-subtitle">11 fields → slimmed to exactly 6 features the ML model expects</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">Back in <code>app.py</code>, only 6 of the 11 available fields are extracted and passed to the prediction function. Raw inputs like <code style="color:var(--accent3)">age</code>, <code style="color:var(--accent3)">weight</code>, <code style="color:var(--accent3)">height</code>, <code style="color:var(--accent3)">smoker</code>, <code style="color:var(--accent3)">city</code> are dropped — they already contributed to computed features.</p>
+          <div class="code-block">
+<span class="cm"># app.py — extract only what the model needs</span>
+user_input = {
+    <span class="str">"bmi"</span>:            user_input.bmi,            <span class="cm"># computed</span>
+    <span class="str">"age_group"</span>:      user_input.age_group,       <span class="cm"># computed</span>
+    <span class="str">"lifestyle_risk"</span>: user_input.lifestyle_risk,  <span class="cm"># computed</span>
+    <span class="str">"city_tier"</span>:      user_input.city_tier,        <span class="cm"># computed</span>
+    <span class="str">"income_lpa"</span>:     user_input.income_lpa,       <span class="cm"># raw (kept)</span>
+    <span class="str">"occupation"</span>:     user_input.occupation        <span class="cm"># raw (kept)</span>
+}
+<span class="cm"># age, weight, height, smoker, city → dropped here ✂️</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-wrapper" style="--dot-color:#3fb950">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#0d2219;border-color:#3fb950;color:#3fb950" onclick="toggleStep(this)">5</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#3fb950" onclick="toggleCard(this)">
+        <h3>🤖 ML Model Prediction <span class="step-badge" style="background:#0d2219;color:#3fb950">model/predict.py</span></h3>
+        <div class="step-subtitle">6-feature dict → pandas DataFrame → model.predict() + predict_proba() → result dict</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">The model is a <strong style="color:var(--text)">pre-trained scikit-learn classifier</strong> loaded from <code>model/model.pkl</code> at startup (not per request). It outputs 3 premium categories.</p>
+          <div class="code-block">
+<span class="cm"># model/predict.py</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="str">"model/model.pkl"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> f:
+    model = <span class="fn">pickle.load</span>(f)          <span class="cm"># loaded ONCE at startup</span>
+
+class_labels = model.classes_.tolist()  <span class="cm"># e.g. ["High","Low","Medium"]</span>
+MODEL_VERSION = <span class="str">"1.0.0"</span>
+
+<span class="kw">def</span> <span class="fn">predict_output</span>(user_input: <span class="cls">dict</span>):
+    input_df = pd.<span class="fn">DataFrame</span>([user_input])    <span class="cm"># 1-row DataFrame</span>
+
+    prediction  = model.<span class="fn">predict</span>(input_df)[<span class="num">0</span>]        <span class="cm"># e.g. "High"</span>
+    probabilities = model.<span class="fn">predict_proba</span>(input_df)[<span class="num">0</span>]  <span class="cm"># e.g. [0.85, 0.10, 0.05]</span>
+    confidence  = <span class="fn">max</span>(probabilities)               <span class="cm"># e.g. 0.85</span>
+
+    prob_dict = <span class="fn">dict</span>(<span class="fn">zip</span>(class_labels,
+                   <span class="fn">map</span>(<span class="kw">lambda</span> x: <span class="fn">round</span>(x, <span class="num">4</span>), probabilities)))
+    <span class="cm"># {"High": 0.85, "Low": 0.10, "Medium": 0.05}</span>
+
+    <span class="kw">return</span> {
+        <span class="str">"prediction"</span>:   prediction,
+        <span class="str">"confidence"</span>:   <span class="fn">round</span>(confidence, <span class="num">4</span>),
+        <span class="str">"probabilities"</span>: prob_dict
+    }</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-wrapper" style="--dot-color:#f78166">
+      <div class="step-connector">
+        <div class="step-dot" style="background:#2d1210;border-color:#f78166;color:#f78166" onclick="toggleStep(this)">6</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-card" style="--step-color:#f78166" onclick="toggleCard(this)">
+        <h3>📤 JSON Response Sent Back <span class="step-badge" style="background:#2d1210;color:#f78166">app.py → frontend.py</span></h3>
+        <div class="step-subtitle">FastAPI wraps prediction in JSONResponse → Streamlit displays category, confidence & probabilities</div>
+        <div class="step-detail">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:.6rem">FastAPI returns a <code>JSONResponse</code> with status 200. The structure does NOT exactly match <code>PredictionResponse</code> schema (uses different keys) — this is a minor inconsistency in the code.</p>
+          <div class="code-block">
+<span class="cm"># FastAPI sends (wrapped in "response" key):</span>
+{
+  <span class="str">"response"</span>: {
+    <span class="str">"prediction"</span>:    <span class="str">"High"</span>,
+    <span class="str">"confidence"</span>:   <span class="num">0.8543</span>,
+    <span class="str">"probabilities"</span>: {
+      <span class="str">"High"</span>:   <span class="num">0.8543</span>,
+      <span class="str">"Low"</span>:    <span class="num">0.0921</span>,
+      <span class="str">"Medium"</span>: <span class="num">0.0536</span>
+    }
+  }
+}
+
+<span class="cm"># Streamlit reads it as:</span>
+result      = data.get(<span class="str">"response"</span>, {})
+category    = result.get(<span class="str">"predicted_category"</span>) <span class="kw">or</span> result.get(<span class="str">"prediction"</span>)
+confidence  = result.get(<span class="str">"confidence"</span>)
+probabilities = result.get(<span class="str">"class_probabilities"</span>) <span class="kw">or</span> result.get(<span class="str">"probabilities"</span>, {})</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end pipeline -->
+</div>
+
+<!-- ═══════════ TRANSFORM VIEW ═══════════ -->
+<div id="view-transform" class="view">
+  <div class="section-title">🔄 How Data Changes Shape at Every Stage</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Raw input (from user)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffa657"></div> Computed by Pydantic</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f78166"></div> Dropped / not passed forward</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Sent to ML model</div>
+  </div>
+
+  <div class="transform-flow">
+    <!-- Stage 1 -->
+    <div class="tf-stage" style="border-color:#58a6ff">
+      <h4 style="color:#58a6ff">① Form Submission</h4>
+      <div class="tf-row"><span class="tf-key">age</span><span class="tf-val" style="color:#58a6ff">35</span></div>
+      <div class="tf-row"><span class="tf-key">weight</span><span class="tf-val" style="color:#58a6ff">75.0 kg</span></div>
+      <div class="tf-row"><span class="tf-key">height</span><span class="tf-val" style="color:#58a6ff">1.75 m</span></div>
+      <div class="tf-row"><span class="tf-key">income_lpa</span><span class="tf-val" style="color:#58a6ff">12.0</span></div>
+      <div class="tf-row"><span class="tf-key">smoker</span><span class="tf-val" style="color:#58a6ff">True</span></div>
+      <div class="tf-row"><span class="tf-key">city</span><span class="tf-val" style="color:#58a6ff">"Mumbai"</span></div>
+      <div class="tf-row"><span class="tf-key">occupation</span><span class="tf-val" style="color:#58a6ff">"private_job"</span></div>
+    </div>
+    <div class="tf-arrow">→</div>
+    <!-- Stage 2 -->
+    <div class="tf-stage" style="border-color:#ffa657">
+      <h4 style="color:#ffa657">② After Pydantic (11 fields)</h4>
+      <div class="tf-row"><span class="tf-key">age</span><span class="tf-val" style="color:#58a6ff">35 ✓</span></div>
+      <div class="tf-row"><span class="tf-key">weight</span><span class="tf-val" style="color:#58a6ff">75.0 ✓</span></div>
+      <div class="tf-row"><span class="tf-key">height</span><span class="tf-val" style="color:#58a6ff">1.75 ✓</span></div>
+      <div class="tf-row"><span class="tf-key">income_lpa</span><span class="tf-val" style="color:#58a6ff">12.0 ✓</span></div>
+      <div class="tf-row"><span class="tf-key">smoker</span><span class="tf-val" style="color:#58a6ff">True ✓</span></div>
+      <div class="tf-row"><span class="tf-key">city</span><span class="tf-val" style="color:#58a6ff">"Mumbai" ✓</span></div>
+      <div class="tf-row"><span class="tf-key">occupation</span><span class="tf-val" style="color:#58a6ff">"private_job" ✓</span></div>
+      <div class="tf-row" style="border-top:1px dashed #ffa65750;margin-top:.3rem;padding-top:.3rem"><span class="tf-key">bmi</span><span class="tf-val" style="color:#ffa657">24.49 🔧</span></div>
+      <div class="tf-row"><span class="tf-key">lifestyle_risk</span><span class="tf-val" style="color:#ffa657">"low" 🔧</span></div>
+      <div class="tf-row"><span class="tf-key">age_group</span><span class="tf-val" style="color:#ffa657">"adult" 🔧</span></div>
+      <div class="tf-row"><span class="tf-key">city_tier</span><span class="tf-val" style="color:#ffa657">1 🔧</span></div>
+    </div>
+    <div class="tf-arrow">→</div>
+    <!-- Stage 3 -->
+    <div class="tf-stage" style="border-color:#3fb950">
+      <h4 style="color:#3fb950">③ Sent to Model (6 fields)</h4>
+      <div class="tf-row"><span class="tf-key tf-dropped">age</span><span class="tf-val tf-dropped">dropped</span></div>
+      <div class="tf-row"><span class="tf-key tf-dropped">weight</span><span class="tf-val tf-dropped">dropped</span></div>
+      <div class="tf-row"><span class="tf-key tf-dropped">height</span><span class="tf-val tf-dropped">dropped</span></div>
+      <div class="tf-row"><span class="tf-key tf-dropped">smoker</span><span class="tf-val tf-dropped">dropped</span></div>
+      <div class="tf-row"><span class="tf-key tf-dropped">city</span><span class="tf-val tf-dropped">dropped</span></div>
+      <div class="tf-row" style="border-top:1px dashed #3fb95050;margin-top:.3rem;padding-top:.3rem"><span class="tf-key">bmi</span><span class="tf-val" style="color:#3fb950">24.49</span></div>
+      <div class="tf-row"><span class="tf-key">age_group</span><span class="tf-val" style="color:#3fb950">"adult"</span></div>
+      <div class="tf-row"><span class="tf-key">lifestyle_risk</span><span class="tf-val" style="color:#3fb950">"low"</span></div>
+      <div class="tf-row"><span class="tf-key">city_tier</span><span class="tf-val" style="color:#3fb950">1</span></div>
+      <div class="tf-row"><span class="tf-key">income_lpa</span><span class="tf-val" style="color:#3fb950">12.0</span></div>
+      <div class="tf-row"><span class="tf-key">occupation</span><span class="tf-val" style="color:#3fb950">"private_job"</span></div>
+    </div>
+    <div class="tf-arrow">→</div>
+    <!-- Stage 4 -->
+    <div class="tf-stage" style="border-color:#d2a8ff">
+      <h4 style="color:#d2a8ff">④ Model Output</h4>
+      <div class="tf-row"><span class="tf-key">prediction</span><span class="tf-val" style="color:#d2a8ff">"High"</span></div>
+      <div class="tf-row"><span class="tf-key">confidence</span><span class="tf-val" style="color:#d2a8ff">0.8543</span></div>
+      <div class="tf-row" style="flex-direction:column;gap:.2rem">
+        <span class="tf-key">probabilities:</span>
+        <span style="font-size:.72rem;color:#3fb950;font-family:monospace;padding-left:.5rem">High: 0.8543</span>
+        <span style="font-size:.72rem;color:#ffa657;font-family:monospace;padding-left:.5rem">Low: 0.0921</span>
+        <span style="font-size:.72rem;color:#58a6ff;font-family:monospace;padding-left:.5rem">Medium: 0.0536</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="animated-flow mt">
+    <h3>⚡ Live Data Packet Simulation</h3>
+    <div style="height:.6rem"></div>
+    <div class="flow-row">
+      <div class="flow-node" style="background:#1c2a40;color:#58a6ff;border:1px solid #58a6ff">🖥 Streamlit</div>
+      <div class="flow-arr">──<span class="data-packet">JSON</span>──▶</div>
+      <div class="flow-node" style="background:#1a1030;color:#d2a8ff;border:1px solid #d2a8ff">⚡ FastAPI</div>
+      <div class="flow-arr">──<span class="data-packet" style="animation-delay:.6s">validate</span>──▶</div>
+      <div class="flow-node" style="background:#1e1800;color:#ffa657;border:1px solid #ffa657">🔍 Pydantic</div>
+      <div class="flow-arr">──<span class="data-packet" style="animation-delay:1.2s">6 features</span>──▶</div>
+      <div class="flow-node" style="background:#0d2219;color:#3fb950;border:1px solid #3fb950">🤖 ML Model</div>
+      <div class="flow-arr">──<span class="data-packet" style="animation-delay:1.8s">prediction</span>──▶</div>
+      <div class="flow-node" style="background:#1c2a40;color:#58a6ff;border:1px solid #58a6ff">🖥 Display</div>
+    </div>
+  </div>
+
+  <div class="info-box mt" style="margin-top:1rem">
+    💡 <strong>Key insight:</strong> The model was trained on 6 features (bmi, age_group, lifestyle_risk, city_tier, income_lpa, occupation) — NOT on the raw inputs. The feature engineering in Pydantic mirrors what was done during model training. This is intentional design.
+  </div>
+</div>
+
+<!-- ═══════════ ARCHITECTURE VIEW ═══════════ -->
+<div id="view-architecture" class="view">
+  <div class="section-title">🗂 File Structure & Responsibilities</div>
+  <div class="arch-grid">
+    <div class="arch-card" style="border-color:#58a6ff50">
+      <div class="icon">🖥</div>
+      <h3 style="color:#58a6ff">frontend.py</h3>
+      <p>Streamlit web UI. Renders input form, collects user values, sends HTTP POST to the FastAPI backend, and displays the prediction result.</p>
+      <span class="tag" style="background:#1c2a40;color:#58a6ff">Streamlit • requests</span>
+    </div>
+    <div class="arch-card" style="border-color:#d2a8ff50">
+      <div class="icon">⚡</div>
+      <h3 style="color:#d2a8ff">app.py</h3>
+      <p>FastAPI application entry point. Defines 3 endpoints: <code>/</code> (welcome), <code>/health</code> (status), <code>/predict</code> (POST). Orchestrates the full prediction pipeline.</p>
+      <span class="tag" style="background:#1e1a2e;color:#d2a8ff">FastAPI • uvicorn</span>
+    </div>
+    <div class="arch-card" style="border-color:#ffa65750">
+      <div class="icon">🔍</div>
+      <h3 style="color:#ffa657">schema/user_input.py</h3>
+      <p>Pydantic model for request validation AND feature engineering. Computes bmi, lifestyle_risk, age_group, city_tier automatically from raw inputs.</p>
+      <span class="tag" style="background:#1e1800;color:#ffa657">Pydantic v2 • @computed_field</span>
+    </div>
+    <div class="arch-card" style="border-color:#f7816650">
+      <div class="icon">📋</div>
+      <h3 style="color:#f78166">schema/prediction_response.py</h3>
+      <p>Pydantic model for API response documentation. Defines predicted_category, confidence, class_probabilities. Used as OpenAPI schema only (note: actual response uses JSONResponse directly).</p>
+      <span class="tag" style="background:#2d1210;color:#f78166">Pydantic • OpenAPI docs</span>
+    </div>
+    <div class="arch-card" style="border-color:#3fb95050">
+      <div class="icon">🤖</div>
+      <h3 style="color:#3fb950">model/predict.py</h3>
+      <p>Loads the pickled ML model at startup. Provides predict_output() which wraps model.predict() and model.predict_proba(), returning a dict with prediction, confidence, and per-class probabilities.</p>
+      <span class="tag" style="background:#0d2219;color:#3fb950">scikit-learn • pandas • pickle</span>
+    </div>
+    <div class="arch-card" style="border-color:#3fb95050">
+      <div class="icon">📦</div>
+      <h3 style="color:#3fb950">model/model.pkl</h3>
+      <p>Pre-trained scikit-learn classifier (binary pickle). Has .classes_, .predict(), and .predict_proba() — typical of a RandomForest, GradientBoosting, or similar ensemble. Version: 1.0.0</p>
+      <span class="tag" style="background:#0d2219;color:#3fb950">Pre-trained • binary file</span>
+    </div>
+    <div class="arch-card" style="border-color:#79c0ff50">
+      <div class="icon">🏙</div>
+      <h3 style="color:#79c0ff">config/city_tier.py</h3>
+      <p>Pure data config. Two lists: tier_1_cities (7 metro cities) and tier_2_cities (48 smaller cities). Everything else → Tier 3. Used by UserInput.city_tier computed field.</p>
+      <span class="tag" style="background:#0d1f2d;color:#79c0ff">Config • lookup lists</span>
+    </div>
+    <div class="arch-card" style="border-color:#1f6feb80">
+      <div class="icon">🐳</div>
+      <h3 style="color:#58a6ff">Dockerfile</h3>
+      <p>Containerises the FastAPI backend. Uses python:3.12-slim, installs requirements, copies all code, exposes port 8000, and runs uvicorn to serve the app.</p>
+      <span class="tag" style="background:#0d1a2e;color:#58a6ff">Docker • uvicorn</span>
+    </div>
+    <div class="arch-card" style="border-color:#8b949e50">
+      <div class="icon">📝</div>
+      <h3 style="color:#8b949e">requirements.txt</h3>
+      <p>Lists Python dependencies installed inside the Docker image. Likely includes fastapi, uvicorn, pydantic, scikit-learn, pandas, and streamlit.</p>
+      <span class="tag" style="background:#1a1c1e;color:#8b949e">pip • dependencies</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ DOCKER VIEW ═══════════ -->
+<div id="view-docker" class="view">
+  <div class="section-title">🐳 Docker — How the Backend is Packaged & Run</div>
+  <div class="info-box">The Dockerfile only containerises the <strong>FastAPI backend</strong>. Streamlit (<code>frontend.py</code>) runs separately and points to the container's exposed port 8000.</div>
+
+  <div class="docker-box">
+    <div class="docker-label">🐳 Docker Container (python:3.12-slim)</div>
+    <div class="docker-inner">
+      <h3>📋 Dockerfile Breakdown</h3>
+      <ul class="cmd-list">
+        <li><span class="cmd-kw">FROM</span> python:3.12-slim <span class="cmd-comment">— lightweight Python 3.12 base image (~60MB)</span></li>
+        <li><span class="cmd-kw">WORKDIR</span> /app <span class="cmd-comment">— all subsequent commands run from /app</span></li>
+        <li><span class="cmd-kw">COPY</span> requirements.txt . <span class="cmd-comment">— copy deps first (Docker layer caching)</span></li>
+        <li><span class="cmd-kw">RUN</span> pip install --no-cache-dir -r requirements.txt <span class="cmd-comment">— install all Python packages</span></li>
+        <li><span class="cmd-kw">COPY</span> . . <span class="cmd-comment">— copy ALL project files: app.py, model/, schema/, config/</span></li>
+        <li><span class="cmd-kw">EXPOSE</span> 8000 <span class="cmd-comment">— document that the container listens on 8000</span></li>
+        <li><span class="cmd-kw">CMD</span> ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"] <span class="cmd-comment">— start server</span></li>
+      </ul>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:center">
+      <div class="port-badge">
+        🔌 Port <strong>8000</strong> → FastAPI + uvicorn
+      </div>
+      <div style="font-size:.78rem;color:var(--muted)">Host: <code style="color:var(--accent1)">0.0.0.0</code> (accessible from outside container)</div>
+    </div>
+  </div>
+
+  <div class="animated-flow mt" style="margin-top:1.5rem">
+    <h3>📁 What's Inside the Container After Build</h3>
+    <div style="margin-top:.8rem">
+      <div class="code-block">
+/app/
+├── app.py                <span class="cm"># FastAPI entry point</span>
+├── requirements.txt      <span class="cm"># Python dependencies</span>
+├── schema/
+│   ├── user_input.py     <span class="cm"># Pydantic validation + feature eng.</span>
+│   └── prediction_response.py
+├── model/
+│   ├── predict.py        <span class="cm"># prediction logic</span>
+│   └── model.pkl         <span class="cm"># pre-trained ML model (binary)</span>
+├── config/
+│   └── city_tier.py      <span class="cm"># city → tier mapping</span>
+└── frontend.py           <span class="cm"># also copied but NOT run by CMD</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="animated-flow mt" style="margin-top:1.5rem">
+    <h3>🚀 Build & Run Commands</h3>
+    <div class="code-block" style="margin-top:.8rem">
+<span class="cm"># Build the image</span>
+docker build -t insurance-premium-api .
+
+<span class="cm"># Run the container</span>
+docker run -p <span class="num">8000</span>:<span class="num">8000</span> insurance-premium-api
+
+<span class="cm"># Streamlit (runs OUTSIDE the container, talks to it)</span>
+streamlit run frontend.py
+<span class="cm"># → open http://localhost:8501 in browser</span>
+<span class="cm"># → frontend POSTs to http://18.117.168.71:8000/predict (or your container)</span>
+    </div>
+  </div>
+
+  <div class="warn-box" style="margin-top:1rem">
+    ⚠️ <strong>Note:</strong> <code>FastAPI_Key.pem</code> is in the project folder — this is an AWS EC2 SSH key for the server at <code>18.117.168.71</code>. It should NOT be committed to git or included in the Docker image in production. The <code>COPY . .</code> instruction currently copies it into the container.
+  </div>
+</div>
+
+<!-- ═══════════ SUMMARY VIEW ═══════════ -->
+<div id="view-summary" class="view">
+  <div class="section-title">📊 Quick Reference Summary</div>
+  <div class="summary-grid">
+    <div class="summary-card" style="border-color:#58a6ff50">
+      <div class="num" style="color:#58a6ff">7</div>
+      <div class="label">Raw inputs from user</div>
+      <div class="desc">age, weight, height, income_lpa, smoker, city, occupation — entered in the Streamlit form</div>
+    </div>
+    <div class="summary-card" style="border-color:#ffa65750">
+      <div class="num" style="color:#ffa657">4</div>
+      <div class="label">Features auto-computed by Pydantic</div>
+      <div class="desc">bmi (weight/height²), lifestyle_risk, age_group, city_tier — never sent by the user, generated server-side</div>
+    </div>
+    <div class="summary-card" style="border-color:#3fb95050">
+      <div class="num" style="color:#3fb950">6</div>
+      <div class="label">Features fed to the ML model</div>
+      <div class="desc">bmi, age_group, lifestyle_risk, city_tier, income_lpa, occupation — the exact feature set the model was trained on</div>
+    </div>
+    <div class="summary-card" style="border-color:#d2a8ff50">
+      <div class="num" style="color:#d2a8ff">3</div>
+      <div class="label">Output premium categories</div>
+      <div class="desc">Low, Medium, High — the ML model outputs one predicted class plus probability scores for all three</div>
+    </div>
+    <div class="summary-card" style="border-color:#f7816650">
+      <div class="num" style="color:#f78166">3</div>
+      <div class="label">API Endpoints</div>
+      <div class="desc"><code>GET /</code> welcome, <code>GET /health</code> status check + model version, <code>POST /predict</code> main prediction endpoint</div>
+    </div>
+    <div class="summary-card" style="border-color:#79c0ff50">
+      <div class="num" style="color:#79c0ff">55</div>
+      <div class="label">Cities with explicit tier mapping</div>
+      <div class="desc">7 Tier-1 metros + 48 Tier-2 cities defined in config/city_tier.py. All other cities → Tier 3</div>
+    </div>
+  </div>
+
+  <div class="animated-flow mt" style="margin-top:1.5rem">
+    <h3>🗺 Full System in One Line</h3>
+    <div style="margin-top:.8rem;font-size:.85rem;line-height:2;color:var(--muted)">
+      <strong style="color:var(--text)">User fills form</strong> (Streamlit)
+      → <strong style="color:#58a6ff">HTTP POST /predict</strong>
+      → <strong style="color:#d2a8ff">FastAPI receives JSON</strong>
+      → <strong style="color:#ffa657">Pydantic validates + computes 4 new fields</strong>
+      → <strong style="color:#79c0ff">app.py selects 6 features</strong>
+      → <strong style="color:#3fb950">model.pkl predicts (Low/Medium/High) + probabilities</strong>
+      → <strong style="color:#f78166">JSON response back to Streamlit</strong>
+      → <strong style="color:var(--text)">UI shows prediction, confidence, class probabilities</strong>
+    </div>
+  </div>
+
+  <div class="animated-flow mt" style="margin-top:1rem">
+    <h3>🏙 City Tier Logic</h3>
+    <div class="field-grid" style="margin-top:.8rem">
+      <div class="field-pill"><div class="dot" style="background:#f78166"></div><span class="name">Tier 1</span><span class="type">Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune</span></div>
+      <div class="field-pill"><div class="dot" style="background:#ffa657"></div><span class="name">Tier 2</span><span class="type">48 mid-sized cities (Jaipur, Lucknow, Surat…)</span></div>
+      <div class="field-pill"><div class="dot" style="background:#3fb950"></div><span class="name">Tier 3</span><span class="type">Everything else (default fallback)</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchView(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'pipeline') animatePipeline();
+  }
+
+  function toggleCard(card) {
+    card.classList.toggle('expanded');
+  }
+
+  function toggleStep(dot) {
+    const card = dot.closest('.step-wrapper').querySelector('.step-card');
+    card.classList.toggle('expanded');
+  }
+
+  function animatePipeline() {
+    const wrappers = document.querySelectorAll('.step-wrapper');
+    wrappers.forEach((w, i) => {
+      w.classList.remove('visible');
+      setTimeout(() => w.classList.add('visible'), 120 * i);
+    });
+  }
+
+  // initial animation
+  window.addEventListener('load', () => {
+    setTimeout(animatePipeline, 200);
+  });
+</script>
+</body>
+</html>

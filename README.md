@@ -30,6 +30,9 @@ What this project currently includes:
 Project path:
 - `projects/insurance-premium-api/`
 
+Data flow presentation:
+- `projects/insurance-premium-api/data_flow.html`
+
 This project demonstrates my end-to-end workflow for building, containerizing, and deploying ML-backed APIs with FastAPI.
 
 
